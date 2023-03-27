@@ -7,6 +7,8 @@ export default function Home() {
   const [userId, setUserId] = useState("");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
+  const [links, setLinks] = useState();
+
   useEffect(() => {
     const getUser = async () => {
       const user = await supabase.auth.getUser();
@@ -20,6 +22,26 @@ export default function Home() {
 
     getUser();
   }, []);
+
+  useEffect(() => {
+    const getLinks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("links")
+          .select("title, url")
+          .eq("user_id", userId);
+
+        if (error) throw error;
+
+        setLinks(data);
+      } catch (error) {
+        console.log("error: ", error);
+      }
+    };
+    if (userId) {
+      getLinks();
+    }
+  }, [userId]);
 
   const addNewLink = async () => {
     try {
@@ -35,6 +57,9 @@ export default function Home() {
         .select();
       if (error) throw error;
       console.log("data: ", data);
+      if (links) {
+        setLinks([...data, ...links]);
+      }
     } catch (error) {
       console.log("error: ", error);
     }
@@ -52,7 +77,17 @@ export default function Home() {
       </Head>
       <main>
         <section>
-          <h1>Sup Mfers!!</h1>
+          {links?.map((link, index) => (
+            <div
+              key={index}
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = link.url;
+              }}
+            >
+              {link.title}
+            </div>
+          ))}
           {isAuthenticated && (
             <>
               <label htmlFor="email">Title</label>
