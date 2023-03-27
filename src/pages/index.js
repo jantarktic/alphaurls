@@ -1,5 +1,7 @@
 import Head from "next/head";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import ImageUploading, { ImageListType } from "react-images-uploading";
 import supabase from "../../utils/supabaseClient";
 
 export default function Home() {
@@ -8,6 +10,12 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [links, setLinks] = useState();
+  const [images, setImages] = useState([]);
+  const [profilePictureUrl, setProfilePictureUrl] = useState("");
+
+  const onChange = (imageList) => {
+    setImages(imageList);
+  };
 
   useEffect(() => {
     const getUser = async () => {
@@ -22,6 +30,26 @@ export default function Home() {
 
     getUser();
   }, []);
+
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("profile_picture_url")
+          .eq("id", userId);
+        if (error) throw error;
+        const profilePictureUrl = data[0]["profile_picture_url"];
+        setProfilePictureUrl(profilePictureUrl);
+      } catch (error) {
+        console.log("error: ", error);
+      }
+    };
+
+    if (userId) {
+      getUser();
+    }
+  }, [userId]);
 
   useEffect(() => {
     const getLinks = async () => {
@@ -64,6 +92,31 @@ export default function Home() {
       console.log("error: ", error);
     }
   };
+  const uploadProfilePicture = async () => {
+    try {
+      if (images.length > 0) {
+        const image = images[0];
+        if (image.file && userId) {
+          const { data, error } = await supabase.storage
+            .from("public")
+            .upload(`${userId}/${image.file.name}`, image.file, {
+              upsert: true,
+            });
+          if (error) throw error;
+          const res = supabase.storage.from("public").getPublicUrl(data.path);
+          const publicUrl = res.data.publicUrl;
+          const updateUserResponse = await supabase
+            .from("users")
+            .update({ profile_picture_url: publicUrl })
+            .eq("id", userId);
+          if (updateUserResponse.error) throw error;
+        }
+      }
+    } catch (error) {
+      console.log("error: ", error);
+    }
+  };
+
   return (
     <>
       <Head>
@@ -77,6 +130,15 @@ export default function Home() {
       </Head>
       <main>
         <section>
+          {profilePictureUrl && (
+            <Image
+              src={profilePictureUrl}
+              alt="profile-picture"
+              height={100}
+              width={100}
+            />
+          )}
+          <h1> New Links added</h1>
           {links?.map((link, index) => (
             <div
               key={index}
@@ -117,6 +179,51 @@ export default function Home() {
               <button type="button" onClick={addNewLink}>
                 Add new link
               </button>
+              <div>
+                <h1> Image Uploading</h1>
+                {images.length > 0 && (
+                  <Image
+                    src={images[0]["data_url"]}
+                    height={100}
+                    width={100}
+                    alt={"profile picture"}
+                  />
+                )}
+                <ImageUploading
+                  multiple
+                  value={images}
+                  onChange={onChange}
+                  maxNumber={1}
+                  dataURLKey="data_url"
+                >
+                  {({
+                    onImageUpload,
+                    onImageRemoveAll,
+                    isDragging,
+                    dragProps,
+                  }) => (
+                    <div>
+                      {images.length === 0 ? (
+                        <button
+                          style={isDragging ? { color: "red" } : undefined}
+                          onClick={onImageUpload}
+                          {...dragProps}
+                        >
+                          Click to upload a new image or drag and drop a new
+                          image here
+                        </button>
+                      ) : (
+                        <button onClick={onImageRemoveAll}>
+                          Remove all images
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </ImageUploading>
+                <button type="button" onClick={uploadProfilePicture}>
+                  Upload Profile Picture
+                </button>
+              </div>
             </>
           )}
         </section>
