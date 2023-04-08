@@ -1,8 +1,9 @@
 import Head from "next/head";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import ImageUploading, { ImageListType } from "react-images-uploading";
-import supabase from "../../utils/supabaseClient";
+import supabase from "../../../utils/supabaseClient";
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,10 +13,34 @@ export default function Home() {
   const [links, setLinks] = useState();
   const [images, setImages] = useState([]);
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
+  const router = useRouter();
+  const { creatorSlug } = router.query;
 
   const onChange = (imageList) => {
     setImages(imageList);
   };
+
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("id", "profile_picture_url")
+          .eq("username", creatorSlug);
+        if (error) throw error;
+        const profilePictureUrl = data[0]["profile_picture_url"];
+        const userId = data[0]["id"];
+        setProfilePictureUrl(profilePictureUrl);
+        setUserId(userId);
+      } catch (error) {
+        console.log("error: ", error);
+      }
+    };
+
+    if (creatorSlug) {
+      getUser();
+    }
+  }, [creatorSlug]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -30,26 +55,6 @@ export default function Home() {
 
     getUser();
   }, []);
-
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("users")
-          .select("profile_picture_url")
-          .eq("id", userId);
-        if (error) throw error;
-        const profilePictureUrl = data[0]["profile_picture_url"];
-        setProfilePictureUrl(profilePictureUrl);
-      } catch (error) {
-        console.log("error: ", error);
-      }
-    };
-
-    if (userId) {
-      getUser();
-    }
-  }, [userId]);
 
   useEffect(() => {
     const getLinks = async () => {

@@ -4,6 +4,7 @@ import supabase from "../../utils/supabaseClient";
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
 
   async function signUpWithEmail() {
     try {
@@ -22,7 +23,9 @@ const Signup = () => {
 
   async function createUser(userId) {
     try {
-      const { error } = await supabase.from("users").insert({ id: userId });
+      const { error } = await supabase
+        .from("users")
+        .insert({ id: userId, username: username });
       if (error) throw error;
     } catch (error) {
       console.log("error :", error);
@@ -41,7 +44,18 @@ const Signup = () => {
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="you@example.com"
-          autoComplete="username"
+        />
+
+        <label htmlFor="password">Username:</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          minLength="8"
+          required
+          placeholder="basedname"
         />
 
         <label htmlFor="password">Password:</label>
@@ -54,7 +68,6 @@ const Signup = () => {
           minLength="8"
           required
           placeholder="********"
-          autoComplete="current-password"
         />
 
         <button type="button" onClick={signUpWithEmail}>

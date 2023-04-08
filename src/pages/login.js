@@ -16,7 +16,7 @@ const Login = () => {
       if (res.error) throw res.error;
       const userId = res.data.user?.id;
       console.log("userId: ", userId);
-      router.push("/");
+      router.push(creatorSlug);
     } catch {
       console.log("there is an error");
     }
