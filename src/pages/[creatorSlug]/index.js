@@ -1,4 +1,3 @@
-import Head from "next/head";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -22,16 +21,32 @@ export default function Home() {
 
   useEffect(() => {
     const getUser = async () => {
+      const user = await supabase.auth.getUser();
+      console.log("user", user);
+      if (user.data.user) {
+        const userId = user.data.user?.id;
+        setIsAuthenticated(true);
+        setUserId(userId);
+      }
+    };
+
+    getUser();
+  }, []);
+
+  useEffect(() => {
+    const getUser = async () => {
       try {
         const { data, error } = await supabase
           .from("users")
           .select("id", "profile_picture_url")
           .eq("username", creatorSlug);
         if (error) throw error;
-        const profilePictureUrl = data[0]["profile_picture_url"];
-        const userId = data[0]["id"];
-        setProfilePictureUrl(profilePictureUrl);
-        setUserId(userId);
+        if (data && data.length > 0) {
+          const profilePictureUrl = data[0]["profile_picture_url"];
+          const userId = data[0]["id"];
+          setProfilePictureUrl(profilePictureUrl);
+          setUserId(userId);
+        }
       } catch (error) {
         console.log("error: ", error);
       }
@@ -41,20 +56,6 @@ export default function Home() {
       getUser();
     }
   }, [creatorSlug]);
-
-  useEffect(() => {
-    const getUser = async () => {
-      const user = await supabase.auth.getUser();
-      console.log("user", user);
-      if (user) {
-        const userId = user.data.user?.id;
-        setIsAuthenticated(true);
-        setUserId(userId);
-      }
-    };
-
-    getUser();
-  }, []);
 
   useEffect(() => {
     const getLinks = async () => {
@@ -122,17 +123,25 @@ export default function Home() {
     }
   };
 
+  async function signOut() {
+    try {
+      console.log("Attempting to sign out"); // Add this line
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) throw error;
+      console.log("Logged out successfully");
+      setIsAuthenticated(false); // Add this line
+      setUserId(""); // Add this line
+      // Navigate to the desired page after logout, for example:
+      router.push("/");
+    } catch (error) {
+      console.error("Error logging out:", error.message);
+    }
+  }
+
   return (
     <>
-      <Head>
-        <title>Alphaurls</title>
-        <meta
-          name="description"
-          content="An alpha way to display your links in your bio. No styling. No Nonsense."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
       <main>
         <section>
           {profilePictureUrl && (
@@ -229,6 +238,9 @@ export default function Home() {
                   Upload Profile Picture
                 </button>
               </div>
+              <button type="button" onClick={signOut}>
+                Logout
+              </button>
             </>
           )}
         </section>

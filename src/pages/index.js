@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import supabase from "../../utils/supabaseClient";
 
-const Login = () => {
+export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
@@ -16,9 +16,20 @@ const Login = () => {
       if (res.error) throw res.error;
       const userId = res.data.user?.id;
       console.log("userId: ", userId);
-      router.push(creatorSlug);
-    } catch {
-      console.log("there is an error");
+      const { data, error } = await supabase
+        .from("users")
+        .select("username")
+        .eq("id", userId)
+        .single();
+
+      if (error) throw error;
+      if (data && data.username) {
+        router.push(`/${data.username}`);
+      } else {
+        console.log("Username not found for the user");
+      }
+    } catch (error) {
+      console.log("there is an error:", error.message);
     }
   }
 
@@ -56,6 +67,4 @@ const Login = () => {
       </form>
     </section>
   );
-};
-
-export default Login;
+}
